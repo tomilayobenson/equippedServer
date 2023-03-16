@@ -37,10 +37,10 @@ const productsSchema = new Schema(
             type: String,
             required: true
         },
-        image: {
+        productPhotos: [{
             type: String,
             required: true
-        },
+        }],
         address: {
             type: String,
             required: true
