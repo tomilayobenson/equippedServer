@@ -1,11 +1,12 @@
 var express = require('express');
-var userRouter = express.Router();
 const User = require('../models/user');
 const passport = require('passport')
 const authenticate = require('../authenticate');
+const cors = require('./cors');
+var userRouter = express.Router();
 
 /* GET users listing. */
-userRouter.get('/', (req, res, next) => {
+userRouter.get('/', cors.corsWithOptions, (req, res, next) => {
     User.find()
         .then(users => {
             res.statusCode = 200;
@@ -14,7 +15,7 @@ userRouter.get('/', (req, res, next) => {
         })
 })
 
-userRouter.post('/signup', (req, res, next) => {
+userRouter.post('/signup', cors.corsWithOptions, (req, res, next) => {
     User.register(
         new User({ username: req.body.username }),
         req.body.password,
@@ -29,6 +30,9 @@ userRouter.post('/signup', (req, res, next) => {
                 }
                 if (req.body.lastName) {
                     user.lastName = req.body.lastName
+                }
+                if (req.body.role) {
+                    user.role = req.body.role
                 }
                 user.save(err => {
                     if (err) {
@@ -49,7 +53,7 @@ userRouter.post('/signup', (req, res, next) => {
     )
 });
 
-userRouter.post('/signin', passport.authenticate('local'), (req, res, next) => {
+userRouter.post('/signin', cors.corsWithOptions, passport.authenticate('local'), (req, res, next) => {
     const token = authenticate.getToken({ _id: req.user._id });
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
@@ -65,7 +69,7 @@ userRouter.post('/facebook-token', passport.authenticate('facebook-token'), (req
     }
 })
 
-userRouter.get('logout', (req, res, next) => {
+userRouter.get('/logout', cors.corsWithOptions, (req, res, next) => {
     authenticate.getToken({ _id: req.user._id }, 0)
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');

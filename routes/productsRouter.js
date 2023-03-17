@@ -23,12 +23,16 @@ const imageFileFilter = (req, file, cb) => {
 
 const upload = multer({ storage: storage, fileFilter: imageFileFilter })
 
-const productRouter = express.Router()
+const productsRouter = express.Router()
 
-productRouter.route('/')
-    .get((req, res, next) => {
+productsRouter.route('/')
+    .options(cors.corsWithOptions, (req, res) => {
+        res.sendStatus(200)
+    })
+    .get(cors.cors, (req, res, next) => {
         Product.find()
             .populate('category')
+            .populate('vendor')
             .then(products => {
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
@@ -36,9 +40,9 @@ productRouter.route('/')
             })
             .catch(err => next(err))
     })
-    .post(upload.array('productPhotos', 10), (req, res, next) => {
-        const imagesArray = req.files.map(fileObj => fileObj.path.substring(6))
-        Product.create({ ...req.body, productPhotos: imagesArray })
+    .post(cors.corsWithOptions, authenticate.verifyUser, upload.array('productPhotos', 10), (req, res, next) => {
+        const imagesArray = req.files.map(fileObj => (`images/${fileObj.filename}`))
+        Product.create({ ...req.body, productPhotos: imagesArray, vendor: req.user._id })
             .then(product => {
                 console.log('Product Created ', product);
                 res.statusCode = 200
@@ -47,11 +51,11 @@ productRouter.route('/')
             })
             .catch(err => next(err))
     })
-    .put((req, res) => {
+    .put(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
         res.statusCode = 403;
         res.end('PUT operation not supported on /products');
     })
-    .delete((req, res, next) => {
+    .delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
         Product.deleteMany()
             .then(response => {
                 res.statusCode = 200;
@@ -61,10 +65,14 @@ productRouter.route('/')
             .catch(err => next(err));
     })
 
-productRouter.route('/:productId')
-    .get((req, res, next) => {
-        Product.findbyId(req.params.productId)
+productsRouter.route('/:productId')
+    .options(cors.corsWithOptions, (req, res) => {
+        res.sendStatus(200)
+    })
+    .get(cors.cors, (req, res, next) => {
+        Product.findById(req.params.productId)
             .populate('category')
+            .populate('vendor')
             .then(product => {
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
@@ -72,32 +80,57 @@ productRouter.route('/:productId')
             })
             .catch(err => next(err));
     })
-    .post((req, res) => {
+    .post(cors.corsWithOptions, authenticate.verifyUser, (req, res) => {
         res.statusCode = 403;
         res.end(`POST operation not supported on /products/${req.params.productId}`);
     })
-    .put((req, res, next) => {
-        Product.findByIdAndUpdate(req.params.productId, { $set: req.body }, { new: true })
-        then(product => {
-            res.statusCode = 200;
-            res.setHeader('Content-Type', 'application/json');
-            res.json(product);
-        })
+    .put(cors.corsWithOptions, authenticate.verifyUser, upload.array('productPhotos', 10), (req, res, next) => {
+        Product.findById(req.params.productId)
+            .then(product => {
+                if (product.vendor.equals(req.user._id)) {
+                    const imagesArray = req.files.map(fileObj => (`images/${fileObj.filename}`))
+                    Product.findByIdAndUpdate(req.params.productId, { $set: { ...req.body, productPhotos: imagesArray, vendor: req.user._id } }, { new: true })
+                        .then(product => {
+                            res.statusCode = 200;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.json(product);
+                        })
+                        .catch(err => next(err))
+                } else {
+                    const err = new Error('You are not authorized to perform this operation!')
+                    err.status = 403
+                    return next(err)
+                }
+            })
             .catch(err => next(err))
     })
-    .delete((req, res, next) => {
-        Product.findByIdAndDelete(req.params.productId)
-        then(response => {
-            res.statusCode = 200
-            res.setHeader('Content-Type', 'application/json')
-            res.json(response)
-        })
+    .delete(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
+        Product.findById(req.params.productId)
+            .then(product => {
+                if (product.vendor.equals(req.user._id)) {
+                    Product.findByIdAndDelete(req.params.productId)
+                        .then(response => {
+                            res.statusCode = 200
+                            res.setHeader('Content-Type', 'application/json')
+                            res.json(response)
+                        })
+                        .catch(err => next(err))
+                } else {
+                    const err = new Error('You are not authorized to perform this operation!')
+                    err.status = 403
+                    return next(err)
+                }
+            })
             .catch(err => next(err))
     })
 
-productRouter.route('/:productId/reviews')
-    .get((req, res, next) => {
+productsRouter.route('/:productId/reviews')
+    .options(cors.corsWithOptions, (req, res) => {
+        res.sendStatus(200)
+    })
+    .get(cors.cors, (req, res, next) => {
         Product.findById(req.params.productId)
+        .populate('reviews.author')
             .then(product => {
                 res.statusCode = 200
                 res.setHeader('Content-Type', 'application/json');
@@ -105,7 +138,7 @@ productRouter.route('/:productId/reviews')
             })
             .catch(err => next(err))
     })
-    .post((req, res, next) => {
+    .post(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         Product.findById(req.params.productId)
             .then(product => {
                 req.body.author = req.user._id
@@ -120,11 +153,11 @@ productRouter.route('/:productId/reviews')
             })
             .catch(err => next(err))
     })
-    .put((req, res, next) => {
+    .put(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         res.statusCode = 403;
         res.end(`PUT operation not supported on /products/${req.params.productId}/reviews`);
     })
-    .delete((req, res, next) => {
+    .delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
         Product.findById(req.params.productId)
             .then(product => {
                 if (product) {
@@ -146,8 +179,11 @@ productRouter.route('/:productId/reviews')
             })
     })
 
-productRouter.route('/:productId/reviews/:reviewId')
-    .get((req, res, next) => {
+productsRouter.route('/:productId/reviews/:reviewId')
+    .options(cors.corsWithOptions, (req, res) => {
+        res.sendStatus(200)
+    })
+    .get(cors.cors, (req, res, next) => {
         Product.findById(req.params.productId)
             .then(product => {
                 if (product && product.reviews.id(req.params.reviewId)) {
@@ -166,27 +202,33 @@ productRouter.route('/:productId/reviews/:reviewId')
             })
             .catch(err => next(err))
     })
-    .post((req, res, next) => {
+    .post(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         res.statusCode = 403;
         res.end(`POST operation not supported on /campsites/${req.params.campsiteId}/comments/${req.params.commentId}`);
     })
-    .put((req, res, next) => {
+    .put(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         Product.findById(req.params.productId)
             .then(product => {
                 if (product && product.reviews.id(req.params.reviewId)) {
-                    if (req.body.rating) {
-                        product.reviews.id(req.params.reviewId).rating = req.body.rating
+                    if (req.user._id.equals(product.reviews.id(req.params.reviewId).author)) {
+                        if (req.body.rating) {
+                            product.reviews.id(req.params.reviewId).rating = req.body.rating
+                        }
+                        if (req.body.text) {
+                            product.reviews.id(req.params.reviewId).text = req.body.text
+                        }
+                        product.save()
+                            .then(product => {
+                                res.statusCode = 200
+                                res.setHeader('Content-Type', 'application/json')
+                                res.json(product)
+                            })
+                            .catch(err => next(err))
+                    } else {
+                        const err = new Error('You are not authorized to perform this operation!')
+                        err.status = 403
+                        return next(err)
                     }
-                    if (req.body.text) {
-                        product.reviews.id(req.params.reviewId).text = req.body.text
-                    }
-                    product.save()
-                        .then(product => {
-                            res.statusCode = 200
-                            res.setHeader('Content-Type', 'application/json')
-                            res.json(product)
-                        })
-                        .catch(err => next(err))
                 } else if (!product) {
                     err = new Error(`Product ${req.params.productId} not found`);
                     err.status = 404;
@@ -199,18 +241,24 @@ productRouter.route('/:productId/reviews/:reviewId')
             })
             .catch(err => next(err))
     })
-    .delete((req, res, next) => {
+    .delete(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
         Product.findById(req.params.productId)
             .then(product => {
                 if (product && product.reviews.id(req.params.reviewId)) {
-                    product.reviews.id(req.params.reviewId).remove()
-                    product.save()
-                        .then(product => {
-                            res.statusCode = 200
-                            res.setHeader('Content-Type', 'application/json')
-                            res.json(product)
-                        })
-                        .catch(err => next(err))
+                    if (req.user._id.equals(product.reviews.id(req.params.reviewId).author)) {
+                        product.reviews.id(req.params.reviewId).remove()
+                        product.save()
+                            .then(product => {
+                                res.statusCode = 200
+                                res.setHeader('Content-Type', 'application/json')
+                                res.json(product)
+                            })
+                            .catch(err => next(err))
+                    } else {
+                        const err = new Error('You are not authorized to perform this operation!')
+                        err.status = 403
+                        return next(err)
+                    }
                 } else if (!product) {
                     err = new Error(`Product ${req.params.productId} not found`);
                     err.status = 404;
@@ -223,4 +271,4 @@ productRouter.route('/:productId/reviews/:reviewId')
             })
     })
 
-    module.export=productRouter
+module.exports = productsRouter

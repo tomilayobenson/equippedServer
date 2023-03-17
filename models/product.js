@@ -43,7 +43,7 @@ const productsSchema = new Schema(
         }],
         address: {
             type: String,
-            required: true
+            required: false
         },
         address2: {
             type: String,
@@ -110,7 +110,11 @@ const productsSchema = new Schema(
             type: Boolean,
             default: false
         },
-        reviews: [reviewSchema]
+        reviews: [reviewSchema],
+        vendor:{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }
     },
     {
         timestamps: true

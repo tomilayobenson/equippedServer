@@ -3,10 +3,13 @@ const cors = require('./cors')
 const Order = require('../models/order')
 const authenticate = require('../authenticate')
 
-const productRouter = express.Router()
+const ordersRouter = express.Router()
 
-orderRouter.route('/')
-    .get((req, res, next) => {
+ordersRouter.route('/')
+    .options(cors.corsWithOptions, (req, res) => {
+        res.sendStatus(200)
+    })
+    .get(cors.corsWithOptions, (req, res, next) => {
         Order.find()
             .populate('orderLines.product')
             .then(orders => {
@@ -16,7 +19,7 @@ orderRouter.route('/')
             })
             .catch(err => next(err))
     })
-    .post((req, res, next) => {
+    .post(cors.corsWithOptions, (req, res, next) => {
         Order.create(req.body)
             .then(order => {
                 console.log('Order Created ', order);
@@ -26,11 +29,11 @@ orderRouter.route('/')
             })
             .catch(err => next(err))
     })
-    .put((req, res) => {
+    .put(cors.corsWithOptions, (req, res) => {
         res.statusCode = 403;
         res.end('PUT operation not supported on /orders');
     })
-    .delete((req, res, next) => {
+    .delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
         Order.deleteMany()
             .then(response => {
                 res.statusCode = 200;
@@ -40,9 +43,12 @@ orderRouter.route('/')
             .catch(err => next(err));
     })
 
-productRouter.route('/:orderId')
-    .get((req, res, next) => {
-        Order.findbyId(req.params.orderId)
+ordersRouter.route('/:orderId')
+    .options(cors.corsWithOptions, (req, res) => {
+        res.sendStatus(200)
+    })
+    .get(cors.corsWithOptions, (req, res, next) => {
+        Order.findById(req.params.orderId)
             .populate('orderLines.product')
             .then(order => {
                 res.statusCode = 200;
@@ -51,22 +57,22 @@ productRouter.route('/:orderId')
             })
             .catch(err => next(err));
     })
-    .post((req, res) => {
+    .post(cors.corsWithOptions, (req, res) => {
         res.statusCode = 403;
         res.end(`POST operation not supported on /orders/${req.params.orderId}`);
     })
-    .put((req, res, next) => {
+    .put(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
         Order.findByIdAndUpdate(req.params.orderId, { $set: req.body }, { new: true })
-        then(order => {
+        .then(order => {
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
             res.json(order);
         })
             .catch(err => next(err))
     })
-    .delete((req, res, next) => {
+    .delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
         Order.findByIdAndDelete(req.params.orderId)
-        then(response => {
+        .then(response => {
             res.statusCode = 200
             res.setHeader('Content-Type', 'application/json')
             res.json(response)
@@ -74,4 +80,4 @@ productRouter.route('/:orderId')
             .catch(err => next(err))
     })
 
-module.export = productRouter
+module.exports = ordersRouter
