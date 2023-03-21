@@ -4,7 +4,7 @@ const User = require('./models/user')
 const JwtStrategy = require('passport-jwt').Strategy
 const ExtractJwt = require('passport-jwt').ExtractJwt;
 const jwt = require('jsonwebtoken');
-const FacebookTokenStrategy = require('passport-facebook-token')
+const FacebookStrategy = require('passport-facebook').Strategy
 const config = require('./config')
 
 exports.local = passport.use(new LocalStrategy(User.authenticate()))
@@ -48,13 +48,16 @@ exports.verifyAdmin = (req, res, next) => {
     }
 }
 
-exports.facebookPassport = passport.authenticate(
-    new FacebookTokenStrategy(
+exports.facebookPassport = passport.use(
+    new FacebookStrategy(
         {
             clientID: config.facebook.clientId,
-            clientSecret: config.facebook.clientSecret
+            clientSecret: config.facebook.clientSecret,
+            callbackURL: 'http://localhost:3000/users/auth/facebook/callback',
+            profileFields: ['id', 'displayName', 'name', 'gender', 'picture.type(large)','email']
         },
         (accessToken, refreshToken, profile, done)=> {
+            console.log("yes i am in here")
             User.findOne({facebookId: profile.id}, (err, user) => {
                 if (err) {
                     return done(err, false);
@@ -63,8 +66,8 @@ exports.facebookPassport = passport.authenticate(
                 } else {
                     user = new User({ username: profile.displayName });
                     user.facebookId = profile.id;
-                    user.firstname = profile.name.givenName;
-                    user.lastname = profile.name.familyName;
+                    user.firstName = profile.name.givenName;
+                    user.lastName = profile.name.familyName;
                     user.save((err, user) => {
                         if (err) {
                             return done(err, false);

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test Login</title>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+    <script>
+        window.fbAsyncInit = function () {
+            FB.init({
+                appId: '780189826857122',
+                cookie: true,
+                xfbml: true,
+                version: 'v13.0'
+            });
+        };
+    </script>
+
+</head>
+
+<body>
+
+    <h1>This is a Heading</h1>
+    <button id="loginBtn">Login with Facebook</button>
+<script>
+    const loginBtn = document.getElementById('loginBtn');
+
+loginBtn.addEventListener('click', () => {
+    FB.login((response) => {
+        if (response.authResponse) {
+            // User has successfully authenticated with Facebook
+            // Redirect to the server's /auth/facebook route to handle authentication
+            window.location.href = '/users/auth/facebook';
+        } else {
+            console.log('User cancelled login or did not fully authorize.');
+        }
+    }, { scope: 'email' });
+});
+</script>
+    <!-- <script>
+        function checkLoginState() {
+            FB.getLoginStatus(function (response) {
+                statusChangeCallback(response);
+            });
+        }
+        function statusChangeCallback(response) {
+            console.log(response)
+            if (response.status === 'connected') {
+                // Here you can redirect the user to the appropriate page
+                // after successful authentication
+                var myHeaders = new Headers();
+                var bearer = `Bearer ${response.authResponse.accessToken}`
+                myHeaders.append("Authorization", bearer);
+                var raw = "";
+                var requestOptions = {
+                    method: 'POST',
+                    headers: myHeaders,
+                    body: raw,
+                    redirect: 'follow'
+                };
+
+                fetch("https://us-central1-personal-projects-380904.cloudfunctions.net/equippedServer/users/facebook-token", requestOptions)
+                    .then(response => response.text())
+                    .then(result => console.log(result))
+                    .catch(error => console.log('error', error));
+            }
+        }
+    </script> -->
+
+</body>
+
+</html>

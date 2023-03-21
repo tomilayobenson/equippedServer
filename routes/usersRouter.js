@@ -6,12 +6,20 @@ const cors = require('./cors');
 var userRouter = express.Router();
 
 /* GET users listing. */
-userRouter.get('/', cors.corsWithOptions, (req, res, next) => {
+userRouter.get('/', cors.corsWithOptions,authenticate.verifyUser, (req, res, next) => {
     User.find()
         .then(users => {
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
             res.json(users);
+        })
+})
+userRouter.delete('/:userId', cors.corsWithOptions,authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+    User.findByIdAndDelete(req.params.userId)
+        .then(response => {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(response);
         })
 })
 
@@ -60,16 +68,18 @@ userRouter.post('/signin', cors.corsWithOptions, passport.authenticate('local'),
     res.json({ success: true, token: token, status: 'You are successfully logged in!' });
 });
 
-userRouter.post('/facebook-token', passport.authenticate('facebook-token'), (req, res) => {
+userRouter.get('/auth/facebook', cors.cors, passport.authenticate('facebook'))
+
+userRouter.get('/auth/facebook/callback', cors.corsWithOptions, passport.authenticate('facebook', { failureRedirect: '/' }),(req, res) => {
     if (req.user) {
         const token = authenticate.getToken({ _id: req.user._id })
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
         res.json({ success: true, token: token, status: 'You are successfully logged in!' });
     }
-})
+});
 
-userRouter.get('/logout', cors.corsWithOptions, (req, res, next) => {
+userRouter.get('/logout', cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
     authenticate.getToken({ _id: req.user._id }, 0)
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
