@@ -42,12 +42,23 @@ productsRouter.route('/')
     })
     .post(cors.corsWithOptions, authenticate.verifyUser, upload.array('productPhotos', 10), (req, res, next) => {
         const imagesArray = req.files.map(fileObj => (`images/${fileObj.filename}`))
-        Product.create({ ...req.body, productPhotos: imagesArray, vendor: req.user._id })
-            .then(product => {
-                console.log('Product Created ', product);
-                res.statusCode = 200
-                res.setHeader('Content-Type', 'application/json');
-                res.json(product)
+        Category.find({
+            _id: {
+                $in: [
+                    ...req.body.category
+                ]
+            }
+        })
+            .then(categories => {
+                const categoriesId = categories.map(category => category._id)
+                Product.create({ ...req.body, productPhotos: imagesArray, category: categoriesId, vendor: req.user._id })
+                    .then(product => {
+                        console.log('Product Created ', product);
+                        res.statusCode = 200
+                        res.setHeader('Content-Type', 'application/json');
+                        res.json(product)
+                    })
+                    .catch(err => next(err))
             })
             .catch(err => next(err))
     })
@@ -130,7 +141,7 @@ productsRouter.route('/:productId/reviews')
     })
     .get(cors.cors, (req, res, next) => {
         Product.findById(req.params.productId)
-        .populate('reviews.author')
+            .populate('reviews.author')
             .then(product => {
                 res.statusCode = 200
                 res.setHeader('Content-Type', 'application/json');

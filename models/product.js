@@ -90,7 +90,7 @@ const productsSchema = new Schema(
             required: false
         },
         minRentDays: {
-            type: String,
+            type: Number,
             required: false
         },
         forPurchase: {
