@@ -4,15 +4,39 @@ const Product = require('../models/product')
 const Category = require('../models/category')
 const authenticate = require('../authenticate')
 const multer = require('multer')
+const { Storage } = require('@google-cloud/storage')
+const MulterGoogleStorage = require('multer-google-storage').default;
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'public/images')
+// const storage = multer.diskStorage({ // use this when storing files in images folder
+//     destination: (req, file, cb) => {
+//         cb(null, 'public/images')
+//     },
+//     filename: (req, file, cb) => {
+//         cb(null, file.originalname)
+//     }
+// })
+
+//storing files uploaded to google cloud bucket
+
+const storage = new Storage({
+    projectId: process.env.PROJECTID,
+    keyFilename: './googlekeyfile.json'
+  });
+
+// const bucket = storage.bucket(process.env.BUCKETNAME);
+
+const multerStorage = new MulterGoogleStorage({
+    projectId: process.env.PROJECTID,
+    keyFilename: './googlekeyfile.json',
+    bucket: 'buckettom-equipped',
+    acl: 'publicread',
+    metadata: (req, file, cb) => {
+      cb(null, { originalName: file.originalname });
     },
     filename: (req, file, cb) => {
-        cb(null, file.originalname)
-    }
-})
+      cb(null, Date.now() + '-' + file.originalname);
+    },
+  });
 
 const imageFileFilter = (req, file, cb) => {
     if (!file.originalname.match(/\.(jpg|png|jpeg|gif)$/)) {
@@ -21,7 +45,7 @@ const imageFileFilter = (req, file, cb) => {
     cb(null, true);
 }
 
-const upload = multer({ storage: storage, fileFilter: imageFileFilter })
+const upload = multer({ storage: multerStorage, fileFilter: imageFileFilter })
 
 const productsRouter = express.Router()
 
@@ -41,7 +65,7 @@ productsRouter.route('/')
             .catch(err => next(err))
     })
     .post(cors.corsWithOptions, authenticate.verifyUser, upload.array('productPhotos', 10), (req, res, next) => {
-        const imagesArray = req.files.map(fileObj => (`images/${fileObj.filename}`))
+        const imagesArray = req.files.map(fileObj => (`${fileObj.filename}`))
         // Category.find({ //a way of finding all documents in a collection that ha=ve ids in the array req.body.category
         //     _id: {
         //         $in: [

@@ -50,11 +50,29 @@ userRouter.post('/signup', cors.corsWithOptions, (req, res, next) => { //for onl
                 }
                 if (req.body.lastName) {
                     user.lastName = req.body.lastName
-                }
+                }                
+                user.role = "6424a43acb5d0b4cc628d887";
                 if (req.body.role) {
                     user.role = req.body.role
                 }
-                user.role = "6413802257a43d9c5671da3d";
+                if (req.body.email) {
+                    user.email = req.body.email
+                }
+                if (req.body.address) {
+                    user.address = req.body.address
+                }
+                if (req.body.address2) {
+                    user.address2 = req.body.address2
+                }
+                if (req.body.city) {
+                    user.city = req.body.city
+                }
+                if (req.body.state) {
+                    user.state = req.body.state
+                }
+                if (req.body.zip) {
+                    user.zip = req.body.zip
+                }
                 user.save(err => {
                     if (err) {
                         res.statusCode = 500;

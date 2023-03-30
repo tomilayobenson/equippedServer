@@ -4,22 +4,22 @@ const User = require('./models/user')
 const JwtStrategy = require('passport-jwt').Strategy
 const ExtractJwt = require('passport-jwt').ExtractJwt;
 const jwt = require('jsonwebtoken');
-const FacebookStrategy = require('passport-facebook').Strategy
-const config = require('./config')
+const FacebookStrategy = require('passport-facebook').Strategy;
+// const config = require('./config')
 
 exports.local = passport.use(new LocalStrategy(User.authenticate()))
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser()) /*these 2 lines are used with passport sessions as against using web tokens which is used here*/
 
 exports.getToken = function (user) {
-    return jwt.sign(user, config.secretKey, { expiresIn: 10800 })
+    return jwt.sign(user, process.env.SECRET_KEY, { expiresIn: 10800 })
 };
 
 exports.jwtPassport = passport.use(
     new JwtStrategy(
         {
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            secretOrKey: config.secretKey
+            secretOrKey: process.env.SECRET_KEY
         },
         (jwt_payload, done) => {
             console.log('JWT payload: ', jwt_payload)
@@ -39,7 +39,7 @@ exports.jwtPassport = passport.use(
 exports.verifyUser = passport.authenticate('jwt', { session: false })
 
 exports.verifyAdmin = (req, res, next) => {
-    if (req.user.role.equals("6413802257a43d9c5671da3c")) { //get the admin objectid
+    if (req.user.role.equals("6424a42fcb5d0b4cc628d886")) { //get the admin objectid
         next()
     } else {
         const err = new Error('You are not authorized to perform this operation!')
@@ -51,8 +51,8 @@ exports.verifyAdmin = (req, res, next) => {
 exports.facebookPassport = passport.use(
     new FacebookStrategy(
         {
-            clientID: config.facebook.clientId,
-            clientSecret: config.facebook.clientSecret,
+            clientID: process.env.FACEBOOKCLIENTID,
+            clientSecret: process.env.FACEBOOKCLEINTSECRET,
             callbackURL: 'http://localhost:3000/users/auth/facebook/callback',
             profileFields: ['id', 'displayName', 'name', 'gender', 'picture.type(large)','email']
         },
