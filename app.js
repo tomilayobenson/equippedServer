@@ -3,6 +3,7 @@ var express = require('express');
 var path = require('path');
 var logger = require('morgan');
 var passport = require('passport')
+require('dotenv').config();
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/usersRouter');
@@ -10,9 +11,9 @@ var productsRouter = require('./routes/productsRouter');
 var ordersRouter = require('./routes/ordersRouter');
 var categoriesRouter = require('./routes/categoriesRouter');
 
-const config = require('./config');
+
 const mongoose = require('mongoose');
-const url = config.mongoConnectionString;
+const url = process.env.ATLASDB_URL;
 
 const connect = async () => {
   await mongoose.connect(url, {
@@ -61,3 +62,4 @@ app.use(function (err, req, res, next) {
 });
 
 module.exports = app;
+// exports.equippedServer = app;
