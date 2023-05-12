@@ -39,7 +39,7 @@ const productsSchema = new Schema(
         },
         productPhotos: [{
             type: String,
-            required: true
+            required: false
         }],
         address: {
             type: String,

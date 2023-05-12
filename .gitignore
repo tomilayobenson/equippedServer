@@ -1,3 +1,4 @@
 node_modules
 .env
-keyfile.json
+googlekeyfile.json
+test.js
